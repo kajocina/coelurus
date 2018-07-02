@@ -10,3 +10,7 @@
 5. Fit Gaussian mixture models to each profile (consider using L1 norm robust fitting to decrease outliers' effects). Perform automatic model selection using AIC/BIC metrics.
 6. Feature engineering: Pearson correlation coefficient (**test others, MAD-based**), PCC pval, Euclidean distance between profiles, peak location (check paper) and Co-apex score (check paper).
 7. Unsupervised and supervised machine learning on the features using scikit-learn
+
+## Data pre-requisites:
+1. iBAQ values
+2. Replicates separate
