@@ -17,4 +17,4 @@
 
 #### To do:
 1. Dump requirements.txt
-2. 
+2. Add tests
