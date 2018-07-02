@@ -1,8 +1,8 @@
 # Algorithm for co-elution data profiling using machine learning.
-# Based on elements of the MATLAB algorithm from Stacey et al. 2017, BMC Bioinformatics, rewritten in Python with changes
-# Author: Piotr Grabowski, 2018, Rappsilber group
+## Based on elements of the MATLAB algorithm from Stacey et al. 2017, BMC Bioinformatics, rewritten in Python with changes
+## Author: Piotr Grabowski, 2018, Rappsilber group
 
-# Overall structure:
+## Overall structure:
 1. Read data
 2. Filter profiles (with minimum number of consecutive data points and intensity)
 3. Impute single missing values with 2 neighboring datapoints (using their mean), remaining data set to 0
