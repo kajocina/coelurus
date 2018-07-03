@@ -49,6 +49,7 @@ class Loader():
 
         :return: Boolean indicating if the profile input data passed initial quality checks.
         """
+
         import numpy as np
 
         if self.input_data is None:
@@ -63,12 +64,14 @@ class Loader():
         num_of_columns = self.input_data.shape[1]
         num_of_fractions = config.get('data_sources', 'number_of_fractions')
         num_of_replicates = config.get('data_sources', 'number_of_replicates')
+
         if num_of_columns != 1+(num_of_fractions*num_of_replicates):
             print("Check the numbers of column in the input data. "
                   "It should be 1 + (number of fractions * number of replicates)")
             return False
 
         numeric_cols = self.input_data.iloc[:,1:].select_dtypes(include=[np.number])
+
         if numeric_cols.shape[1] != num_of_fractions*num_of_replicates:
             print("Seems that some of the putative profile columns are not numeric. "
                   "Check the input file for non-numeric entries.")
