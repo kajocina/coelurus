@@ -57,13 +57,13 @@ class Loader():
             return False
 
         expected_protein_id = config.get('data_sources', 'input_data_protein_id')
-        if not self.input_data.columns.str.contains(expected_protein_id):
+        if not np.any(self.input_data.columns.str.contains(expected_protein_id)):
             print("The data seems to be missing the specific protein ID column. Check the config.ini.")
             return False
 
         num_of_columns = self.input_data.shape[1]
-        num_of_fractions = config.get('data_sources', 'number_of_fractions')
-        num_of_replicates = config.get('data_sources', 'number_of_replicates')
+        num_of_fractions = config.getint('data_sources', 'number_of_fractions')
+        num_of_replicates = config.getint('data_sources', 'number_of_replicates')
 
         if num_of_columns != 1+(num_of_fractions*num_of_replicates):
             print("Check the numbers of column in the input data. "
