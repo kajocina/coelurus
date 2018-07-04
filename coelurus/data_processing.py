@@ -9,7 +9,8 @@ The output from the module is ready to be used by the machine learning part of t
 import pandas as pd
 import ConfigParser
 config = ConfigParser.ConfigParser()
-config.readfp(open('./config.ini', 'r'))
+
+
 
 class Loader():
     """ Input data loader.
@@ -17,7 +18,7 @@ class Loader():
     This class takes care of data reading and performing basic data quality checks.
 
     """
-    def __init__(self):
+    def __init__(self, config_path):
         """
 
         self.data_source reads the config entry in config.ini regarding the source of the data.
@@ -25,7 +26,8 @@ class Loader():
             Entry 'AWS' means that the input data is hosted using the S3 cloud service.
 
         """
-        self.data_source = config.get('data_sources', 'data_source')
+        self.config = config.readfp(open(config_path, 'r'))
+        self.data_source = self.config.get('data_sources', 'data_source')
         self.input_path = None
         self.input_data = None
 
@@ -66,7 +68,7 @@ class Loader():
         num_of_replicates = config.getint('data_sources', 'number_of_replicates')
 
         if num_of_columns != 1+(num_of_fractions*num_of_replicates):
-            print("Check the numbers of column in the input data. "
+            print("Check the numbers of column in the input data."
                   "It should be 1 + (number of fractions * number of replicates)")
             return False
 
