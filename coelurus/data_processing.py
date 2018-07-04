@@ -8,6 +8,7 @@ The output from the module is ready to be used by the machine learning part of t
 """
 import pandas as pd
 import ConfigParser
+import numpy as np
 
 
 class Loader:
@@ -32,6 +33,7 @@ class Loader:
         self.data_source = self.config.get('data_sources', 'data_source')
         self.input_path = None
         self.input_data = None
+        self.basic_quality_passed = False
 
     def load_data(self):
         """
@@ -56,8 +58,6 @@ class Loader:
 
         :return: Boolean indicating if the profile input data passed initial quality checks.
         """
-
-        import numpy as np
 
         if self.input_data is None:
             print("The data seems to be missing. Did you call load_data() first?")
@@ -84,5 +84,19 @@ class Loader:
                   "Check the input file for non-numeric entries.")
             return False
 
+        self.basic_quality_passed = True
         # Checks passed OK.
         return True
+
+    def calc_missing_data(self):
+        """
+        Calculate the number of missing data in the loaded dataset.
+
+
+        :return: Number of missing values in the loaded dataset.
+        """
+        if not self.basic_quality_passed:
+            print("The basic data quality check was either not ran or didnt pass. Did you call .quality_check()?")
+        else:
+            return self.input_data.iloc[:, 1:].isnull().sum().sum()
+
