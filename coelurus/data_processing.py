@@ -11,7 +11,7 @@ import ConfigParser
 import numpy as np
 
 
-class Loader:
+class Loader(object):
     """ Input data loader.
 
     This class takes care of data reading and performing basic data quality checks.
@@ -24,8 +24,8 @@ class Loader:
 
         self.config = ConfigParser.SafeConfigParser()
         try:
-            handle = open(config_path, 'r')
-            self.config.readfp(handle)
+            with open(config_path, 'r') as handle:
+                self.config.readfp(handle)
         except IOError:
             print('Cant find the config file')
             raise
