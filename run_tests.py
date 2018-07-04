@@ -16,7 +16,7 @@ config.readfp(open('./tests/test_config.ini', 'r'))
 class MalformedInputTest1(unittest.TestCase):
 
     def setUp(self):
-        # Create a temp malformed input.
+        # Create a temp malformed input (remove specified protein id column).
 
         tempdir = './tests/sample_data/temp/'
         if not os.path.exists(tempdir):
@@ -39,7 +39,7 @@ class MalformedInputTest1(unittest.TestCase):
 class MalformedInputTest2(unittest.TestCase):
 
     def setUp(self):
-        # Create a temp malformed input.
+        # Create a temp malformed input (delete one feature column).
 
         tempdir = './tests/sample_data/temp/'
         if not os.path.exists(tempdir):
@@ -53,6 +53,29 @@ class MalformedInputTest2(unittest.TestCase):
         loader = coelurus.Loader('./tests/test_config.ini')
         loader.load_data()
         self.assertFalse(loader.quality_check(), 'Wrong number of columns not detected.')
+
+    def tearDown(self):
+        # Remove the temp file.
+        shutil.rmtree('./tests/sample_data/temp/')
+
+
+class MalformedInputTest3(unittest.TestCase):
+
+    def setUp(self):
+        # Create a temp malformed input (inject a string column).
+
+        tempdir = './tests/sample_data/temp/'
+        if not os.path.exists(tempdir):
+            os.mkdir(tempdir)
+
+        test_data = pd.read_csv(config.get('data_sources', 'good_input_data_path'))
+        test_data.iloc[:,1] = "Foo_Str"
+        test_data.to_csv('./tests/sample_data/temp/input_data_malformed.csv', index=False)
+
+    def test_protein_ids(self):
+        loader = coelurus.Loader('./tests/test_config.ini')
+        loader.load_data()
+        self.assertFalse(loader.quality_check(), 'String feature column not detected.')
 
     def tearDown(self):
         # Remove the temp file.
