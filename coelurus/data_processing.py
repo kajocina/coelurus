@@ -45,6 +45,9 @@ class Loader:
         elif self.data_source == 'AWS':
             # import boto3
             pass  # add AWS S3 support using boto3
+        else:
+            self.input_data = None
+            print('The config doesnt specify local/AWS data_source!')
 
     def quality_check(self):
         """
@@ -83,5 +86,3 @@ class Loader:
 
         # Checks passed OK.
         return True
-
-foo = Loader('./config.ini')
