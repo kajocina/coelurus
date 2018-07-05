@@ -62,15 +62,6 @@ class Validator(object):
         self.input_data = loader.input_data
         self.basic_quality_passed = False
 
-    # def calc_missing_data(self):
-    #     """
-    #     Calculate the number of missing data in the loaded dataset.
-    #
-    #     :return: Number of missing values in the loaded dataset.
-    #     """
-    #
-    #     return self.input_data.iloc[:, 1:].isnull().sum().sum()
-
     def quality_check(self):
         """
 
@@ -128,26 +119,70 @@ class Validator(object):
 class DataPrepare(object):
     """
     Prepares input data for Gaussian fitting using option from the specified config file.
-    1. Sets NAs to 0s
-    2. Filters-out profiles with more than 'max_frac_data_missing' missing values (now set to 0).
-    3. Filters-out profiles with less than 'min_signal_to_noise_ratio' signal to noise ratio.
+    1. Splits data by replicates into a list.
+    2. Sets NAs to 0s
+    3. Filters-out profiles with less than 'min_consecutive_fractions' consecutive non-0 datapoints.
+    4. Filters-out profiles with less than 'min_signal_to_noise_ratio' signal to noise ratio.
     """
     def __init__(self, validator):
 
         from copy import copy
         self.validator = copy(validator)
         self.input_data = validator.input_data
+        self.config = validator.config
 
         if not self.validator.basic_quality_passed:
             print("Data has not being checked for consistency with config. Running Validator.quality_check() first!")
             self.validator.quality_check()
 
+        self.replicate_data = self.split_reps_to_list(self.input_data)
 
-    def set_NAs_to_0(self):
+    def split_reps_to_list(self, data):
         """
-        Sets all missing values to 0s.
+        Split the input data into separate replicates (based on the letter at the end of the column name)
+        :param data: Input data (profiles), pandas DataFrame.
+        :return: List of pandas DataFrames, each containing a separate replicate
         """
-        self.input_data.iloc[:,1:][self.input_data.iloc[:,1:].isnull()] = 0
-        
+        data_list = []
+        colnames = self.input_data.columns[1:].tolist()
+        reps = [name[-1] for name in colnames]
+        for rep in sorted(set(reps)):
+            rep_ixs = [i+1 for i, x in enumerate(reps) if x == rep]
+            rep_ixs = [0] + rep_ixs
+            rep_data = data.iloc[:, rep_ixs]
+            data_list.append(rep_data)
+
+        return data_list
+
+    @staticmethod
+    def set_nas_to_0(input_data):
+        """
+        Sets all NA values to 0.
+        :param input_data: pandas DataFrame with input profiles.
+        :return: pandas DataFrame with input profiles.
+        """
+        input_data.iloc[:, 1:][input_data.iloc[:, 1:].isnull()] = 0
+        return input_data
+
+    @staticmethod
+    def filter_missing_profiles(input_data):
+        """
+        Removes rows that have are least 'min_consecutive_fractions' consecutive fractions above 0.
+        :param input_data: pandas DataFrame with input profiles.
+        :return: pandas DataFrame with input profiles.
+        """
+
+
+        return input_data
+
+    def apply_filters(self):
+        """
+        Applies the filter functions to the data.
+        :return:
+        """
+        for i in range(len(self.replicate_data)):
+            self.replicate_data[i] = self.set_nas_to_0(self.replicate_data[i])
+
+            pass # apply filters
 
 ## GaussFitter etc will be a separate submodule
