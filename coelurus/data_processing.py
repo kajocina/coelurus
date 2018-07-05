@@ -51,6 +51,26 @@ class Loader(object):
             self.input_data = None
             print('The config doesnt specify local/AWS data_source!')
 
+
+class Validator(object):
+    """
+    Performs initial quality check on the dataset.
+    """
+    def __init__(self, loader):
+        self.loader = loader
+        self.config = loader.config
+        self.input_data = loader.input_data
+        self.basic_quality_passed = False
+
+    # def calc_missing_data(self):
+    #     """
+    #     Calculate the number of missing data in the loaded dataset.
+    #
+    #     :return: Number of missing values in the loaded dataset.
+    #     """
+    #
+    #     return self.input_data.iloc[:, 1:].isnull().sum().sum()
+
     def quality_check(self):
         """
 
@@ -58,9 +78,10 @@ class Loader(object):
 
         :return: Boolean indicating if the profile input data passed initial quality checks.
         """
+        import string
 
         if self.input_data is None:
-            print("The data seems to be missing. Did you call load_data() first?")
+            print("The data seems to be missing. Did you call load_data() in the Loader first?")
             return False
 
         expected_protein_id = self.config.get('data_sources', 'input_data_protein_id')
@@ -84,19 +105,23 @@ class Loader(object):
                   "Check the input file for non-numeric entries.")
             return False
 
+        # Check feature column naming
+        colnames = self.input_data.columns[1:].tolist()
+        name_numbers = [[x for y in range(num_of_replicates)] for x in range(num_of_fractions)]
+        name_numbers = [x+1 for y in name_numbers for x in y]  # flatten
+        name_reps = [string.ascii_uppercase[x] for x in range(num_of_replicates) * num_of_fractions]
+        expected_names = map(lambda x: 'F'+str(x[0])+x[1], zip(name_numbers,name_reps))
+        if colnames != expected_names:
+            print("Wrong feature (fraction) column naming. It should be F+frac_number+replicate, e.g. F1A,F2B,F30C.")
+            return False
+
         self.basic_quality_passed = True
-        # Checks passed OK.
+
+        print("Initial data checks passed OK.")
         return True
 
-    def calc_missing_data(self):
-        """
-        Calculate the number of missing data in the loaded dataset.
 
+class DataPrepare(object):
+    pass
 
-        :return: Number of missing values in the loaded dataset.
-        """
-        if not self.basic_quality_passed:
-            print("The basic data quality check was either not ran or didnt pass. Did you call .quality_check()?")
-        else:
-            return self.input_data.iloc[:, 1:].isnull().sum().sum()
-
+## GaussFitter etc will be a separate submodule
