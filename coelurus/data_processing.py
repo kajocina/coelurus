@@ -84,6 +84,10 @@ class Validator(object):
             print("The data seems to be missing. Did you call load_data() in the Loader first?")
             return False
 
+        if self.input_data.shape[0] < 10:
+            print("The input data has less than 10 rows/profiles. Check the file again?")
+            return False
+
         expected_protein_id = self.config.get('data_sources', 'input_data_protein_id')
         if not np.any(self.input_data.columns.str.contains(expected_protein_id)):
             print("The data seems to be missing the specific protein ID column. Check the config.ini.")
@@ -122,6 +126,28 @@ class Validator(object):
 
 
 class DataPrepare(object):
-    pass
+    """
+    Prepares input data for Gaussian fitting using option from the specified config file.
+    1. Sets NAs to 0s
+    2. Filters-out profiles with more than 'max_frac_data_missing' missing values (now set to 0).
+    3. Filters-out profiles with less than 'min_signal_to_noise_ratio' signal to noise ratio.
+    """
+    def __init__(self, validator):
+
+        from copy import copy
+        self.validator = copy(validator)
+        self.input_data = validator.input_data
+
+        if not self.validator.basic_quality_passed:
+            print("Data has not being checked for consistency with config. Running Validator.quality_check() first!")
+            self.validator.quality_check()
+
+
+    def set_NAs_to_0(self):
+        """
+        Sets all missing values to 0s.
+        """
+        self.input_data.iloc[:,1:][self.input_data.iloc[:,1:].isnull()] = 0
+        
 
 ## GaussFitter etc will be a separate submodule
