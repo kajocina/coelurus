@@ -62,6 +62,22 @@ class Validator(object):
         self.input_data = loader.input_data
         self.basic_quality_passed = False
 
+    def get_expected_colnames(self):
+        """
+        Based on the config, check expected column names.
+        :return: A list of expected columns names.
+        """
+        import string
+
+        num_of_fractions = self.config.getint('data_sources', 'number_of_fractions')
+        num_of_replicates = self.config.getint('data_sources', 'number_of_replicates')
+        name_numbers = [[x for y in range(num_of_replicates)] for x in range(num_of_fractions)]
+        name_numbers = [x + 1 for y in name_numbers for x in y]  # flatten
+        name_reps = [string.ascii_uppercase[x] for x in range(num_of_replicates) * num_of_fractions]
+        expected_names = map(lambda x: 'F' + str(x[0]) + x[1], zip(name_numbers, name_reps))
+
+        return expected_names
+
     def quality_check(self):
         """
 
@@ -69,7 +85,6 @@ class Validator(object):
 
         :return: Boolean indicating if the profile input data passed initial quality checks.
         """
-        import string
 
         if self.input_data is None:
             print("The data seems to be missing. Did you call load_data() in the Loader first?")
@@ -93,7 +108,7 @@ class Validator(object):
                   "It should be 1 + (number of fractions * number of replicates)")
             return False
 
-        numeric_cols = self.input_data.iloc[:,1:].select_dtypes(include=[np.number])
+        numeric_cols = self.input_data.iloc[:, 1:].select_dtypes(include=[np.number])
 
         if numeric_cols.shape[1] != num_of_fractions*num_of_replicates:
             print("Seems that some of the putative profile columns are not numeric. "
@@ -102,10 +117,8 @@ class Validator(object):
 
         # Check feature column naming
         colnames = self.input_data.columns[1:].tolist()
-        name_numbers = [[x for y in range(num_of_replicates)] for x in range(num_of_fractions)]
-        name_numbers = [x+1 for y in name_numbers for x in y]  # flatten
-        name_reps = [string.ascii_uppercase[x] for x in range(num_of_replicates) * num_of_fractions]
-        expected_names = map(lambda x: 'F'+str(x[0])+x[1], zip(name_numbers,name_reps))
+        expected_names = self.get_expected_colnames()
+
         if colnames != expected_names:
             print("Wrong feature (fraction) column naming. It should be F+frac_number+replicate, e.g. F1A,F2B,F30C.")
             return False
@@ -114,6 +127,18 @@ class Validator(object):
 
         print("Initial data checks passed OK.")
         return True
+
+    def enforce_column_names(self):
+        """
+        Enforces proper column names based on the number of fractions and replicates specified in the config file.
+        """
+        enforced_labels = self.get_expected_colnames()
+        try:
+            self.input_data.columns = [self.config.get('data_sources','input_data_protein_id')] + enforced_labels
+            print("Labels enforced. New column names are: %s" % self.input_data.columns)
+        except ValueError:
+            print("Can't enforce labels. Are the numbers of fractions and replicates in the config.ini correct?")
+            raise
 
 
 class DataPrepare(object):
@@ -154,8 +179,7 @@ class DataPrepare(object):
 
         return data_list
 
-    @staticmethod
-    def set_nas_to_0(input_data):
+    def set_nas_to_0(self, input_data):
         """
         Sets all NA values to 0.
         :param input_data: pandas DataFrame with input profiles.
@@ -164,15 +188,26 @@ class DataPrepare(object):
         input_data.iloc[:, 1:][input_data.iloc[:, 1:].isnull()] = 0
         return input_data
 
-    @staticmethod
-    def filter_missing_profiles(input_data):
+    def filter_missing_profiles(self, input_data):
         """
-        Removes rows that have are least 'min_consecutive_fractions' consecutive fractions above 0.
+        Removes rows that do not have at least 'min_consecutive_fractions' consecutive fractions above 0.
         :param input_data: pandas DataFrame with input profiles.
-        :return: pandas DataFrame with input profiles.
+        :return: pandas DataFrame with filtered input profiles.
         """
+        profiles = input_data.iloc[:, 1:]
+        # set to remove all profiles by default, unless 5 consec. values found
+        rows_out = np.full(profiles.shape[0], False, dtype=bool)
+        # use a sliding window approach
+        window_width = self.config.getint('filter_options', 'min_consecutive_fractions')
+        num_windows = (profiles.shape[1]) - window_width + 1
+        for i in range(num_windows):
+            r_idx = i + window_width
+            nonzero_boolean = profiles.iloc[:, i:r_idx] != 0
+            rows_to_keep = np.all(nonzero_boolean, axis=1)
+            rows_out = rows_out | rows_to_keep
 
-
+        input_data = input_data.loc[rows_out, :]
+        print(input_data)
         return input_data
 
     def apply_filters(self):
@@ -186,3 +221,8 @@ class DataPrepare(object):
             pass # apply filters
 
 ## GaussFitter etc will be a separate submodule
+foo = Loader("./config.ini")
+foo.load_data()
+val = Validator(foo)
+val.enforce_column_names()
+val.quality_check()
