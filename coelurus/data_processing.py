@@ -4,7 +4,6 @@ This module takes care of steps related to data reading, checking and pre-proces
 The output from the module is ready to be used by the machine learning part of the package.
 
 
-
 """
 import pandas as pd
 import ConfigParser
@@ -161,6 +160,7 @@ class DataPrepare(object):
             self.validator.quality_check()
 
         self.replicate_data = self.split_reps_to_list(self.input_data)
+        self.data_imputed = False
 
     def split_reps_to_list(self, data):
         """
@@ -178,6 +178,14 @@ class DataPrepare(object):
             data_list.append(rep_data)
 
         return data_list
+
+    def impute_missing_values(self):
+        """
+        Imputes missing values if an NA or 0 is present between two non-null values using mean imputation.
+        todo: set self.data_imputed flag to True
+        """
+
+        
 
     def set_nas_to_0(self, input_data):
         """
@@ -207,7 +215,26 @@ class DataPrepare(object):
             rows_to_keep = np.all(nonzero_boolean, axis=1)
             rows_out = rows_out | rows_to_keep
 
-        input_data = input_data.loc[rows_out, :]
+        rows_stay = rows_out
+        input_data = input_data.loc[rows_stay, :]
+
+        return input_data
+
+    def filter_signal_to_noise(self, input_data):
+        """
+        Removes profiles which have very low relative max signal. Threshold specified in config (min_signal_to_noise).
+        Columns with 0's are NOT used for background signal calculation.
+        :return: pandas DataFrame with filtered input profiles.
+        todo: seems that the filter is not very handy yet? remove?
+        """
+        threshold = self.config.getfloat('filter_options','min_signal_to_noise')
+        profiles = input_data.iloc[:, 1:]
+        max_values = profiles.apply(max, 1)
+        profiles[profiles == 0] = np.nan  # set to NaN for calculations only, the data is unchanged
+        profile_means = np.nanmean(profiles, axis=1)
+        rows_stay = max_values * threshold > profile_means
+
+        input_data = input_data.loc[rows_stay, :]
 
         return input_data
 
@@ -218,13 +245,21 @@ class DataPrepare(object):
         """
         for i in range(len(self.replicate_data)):
             self.replicate_data[i] = self.set_nas_to_0(self.replicate_data[i])
+            self.replicate_data[i] = self.filter_missing_profiles(self.replicate_data[i])
 
-            pass # apply filters
+        if self.config.getfloat('filter_options','min_signal_to_noise') > 0:
+            for i in range(len(self.replicate_data)):
+                self.replicate_data[i] = self.filter_signal_to_noise(self.replicate_data[i])
 
-## GaussFitter etc will be a separate submodule
+        print("Filters applied to .replicate_data list.")
+
+
+# GaussFitter etc will be a separate submodule
 foo = Loader("./config.ini")
 foo.load_data()
 val = Validator(foo)
 val.enforce_column_names()
 val.quality_check()
 data_filter = DataPrepare(val)
+## ...impute()
+data_filter.apply_filters()
