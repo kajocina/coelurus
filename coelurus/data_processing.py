@@ -185,7 +185,7 @@ class DataPrepare(object):
         todo: set self.data_imputed flag to True
         """
 
-        
+
 
     def set_nas_to_0(self, input_data):
         """

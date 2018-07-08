@@ -10,9 +10,13 @@ def main():
     config_path = args.config_path
     loader = coelurus.Loader(config_path)
     loader.load_data()
+
     val = coelurus.Validator(loader)
+    val.enforce_column_names()
     val.quality_check()
-    filters = coelurus.DataPrepare(val)
+
+    data_filter = coelurus.DataPrepare(val)
+    data_filter.apply_filters()
 
 
 if __name__ == "__main__":
