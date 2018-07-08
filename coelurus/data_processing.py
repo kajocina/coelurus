@@ -191,6 +191,7 @@ class DataPrepare(object):
     def filter_missing_profiles(self, input_data):
         """
         Removes rows that do not have at least 'min_consecutive_fractions' consecutive fractions above 0.
+        todo: write test for this function!
         :param input_data: pandas DataFrame with input profiles.
         :return: pandas DataFrame with filtered input profiles.
         """
@@ -207,7 +208,7 @@ class DataPrepare(object):
             rows_out = rows_out | rows_to_keep
 
         input_data = input_data.loc[rows_out, :]
-        print(input_data)
+
         return input_data
 
     def apply_filters(self):
@@ -226,3 +227,4 @@ foo.load_data()
 val = Validator(foo)
 val.enforce_column_names()
 val.quality_check()
+data_filter = DataPrepare(val)
