@@ -290,14 +290,11 @@ class DataPrepare(object):
 
 
 # GaussFitter etc will be a separate submodule
-foo = Loader("./config.ini")
-foo.load_data()
-val = Validator(foo)
-val.enforce_column_names()
-val.quality_check()
-data_filter = DataPrepare(val)
+# foo = Loader("./config.ini")
+# foo.load_data()
+# val = Validator(foo)
+# val.enforce_column_names()
+# val.quality_check()
+# data_filter = DataPrepare(val)
 ## ...impute()
 #data_filter.apply_filters()
-
-foo.input_data
-data_filter.impute_missing_values(foo.input_data)
