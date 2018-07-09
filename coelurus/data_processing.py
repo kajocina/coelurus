@@ -9,7 +9,6 @@ import pandas as pd
 import ConfigParser
 import numpy as np
 
-
 class Loader(object):
     """ Input data loader.
 
@@ -58,7 +57,7 @@ class Validator(object):
     def __init__(self, loader):
         self.loader = loader
         self.config = loader.config
-        self.input_data = loader.input_data
+        self.input_data = loader.input_data.copy()
         self.basic_quality_passed = False
 
     def get_expected_colnames(self):
@@ -152,7 +151,7 @@ class DataPrepare(object):
 
         from copy import copy
         self.validator = copy(validator)
-        self.input_data = validator.input_data
+        self.input_data = validator.input_data.copy()
         self.config = validator.config
 
         if not self.validator.basic_quality_passed:
@@ -182,9 +181,8 @@ class DataPrepare(object):
     def impute_missing_values(self, input_data):
         """
         Imputes missing values if an NA or 0 is present between two non-null values using mean imputation.
-        todo: set self.data_imputed flag to True
         """
-        profiles = input_data.iloc[:, 1:]
+        profiles = input_data.iloc[:, 1:].copy()
         profiles[profiles == 0] = np.nan
 
         def mean_impute(arr):
@@ -193,19 +191,23 @@ class DataPrepare(object):
             :param arr: 3 element array, middle value to be imputed using a mean
             :return: imputed array
             """
-            if arr[1] != np.nan:
+            if arr[1] == np.nan:
                 print("Mid value in the array was not NaN, something went wrong with imputation.")
                 return arr
 
-            arr[1] = (arr[0]+arr[2])/2
+            arr[1] = np.round((arr[0]+arr[2])/2, 3)
             return arr
 
         for i in range(profiles.shape[1] - 3):
             window = profiles.iloc[:, i:i+3]
             # which rows should be imputed (only if middle value is the only missing)
             imp_row = np.all(window.isna().apply(lambda x: x == [False, True, False], axis=1), axis=1)
-            imp_row = np.where(imp_row)
-            window.iloc[imp_row, :] = window.iloc[imp_row, :].apply(lambda x: mean_impute(x), axis=1)
+            imp_row = np.where(imp_row)[0]
+            profiles.iloc[imp_row, i:i+3] = window.loc[imp_row].apply(lambda x: mean_impute(x), axis=1)
+
+        input_data.iloc[:, 1:] = profiles
+        self.data_imputed = True
+        return input_data
 
     def smooth_profiles(self, input_data):
         """
@@ -295,4 +297,7 @@ val.enforce_column_names()
 val.quality_check()
 data_filter = DataPrepare(val)
 ## ...impute()
-data_filter.apply_filters()
+#data_filter.apply_filters()
+
+foo.input_data
+data_filter.impute_missing_values(foo.input_data)
