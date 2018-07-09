@@ -179,13 +179,46 @@ class DataPrepare(object):
 
         return data_list
 
-    def impute_missing_values(self):
+    def impute_missing_values(self, input_data):
         """
         Imputes missing values if an NA or 0 is present between two non-null values using mean imputation.
         todo: set self.data_imputed flag to True
         """
+        profiles = input_data.iloc[:, 1:]
+        profiles[profiles == 0] = np.nan
 
+        def mean_impute(arr):
+            """
+            Imputes mean value in the array.
+            :param arr: 3 element array, middle value to be imputed using a mean
+            :return: imputed array
+            """
+            if arr[1] != np.nan:
+                print("Mid value in the array was not NaN, something went wrong with imputation.")
+                return arr
 
+            arr[1] = (arr[0]+arr[2])/2
+            return arr
+
+        for i in range(profiles.shape[1] - 3):
+            window = profiles.iloc[:, i:i+3]
+            # which rows should be imputed (only if middle value is the only missing)
+            imp_row = np.all(window.isna().apply(lambda x: x == [False, True, False], axis=1), axis=1)
+            imp_row = np.where(imp_row)
+            window.iloc[imp_row, :] = window.iloc[imp_row, :].apply(lambda x: mean_impute(x), axis=1)
+
+    def smooth_profiles(self, input_data):
+        """
+        Performs profile smoothing using rolling window of size 3 and mean values.
+        :return: pandas DataFrame with smoothened input profiles.
+        todo: add option to the config
+        todo: add to applying function (after imputation)
+        """
+        winsize = self.config.readint('filter_options','smooth_window_size')
+        min_periods = winsize - 1
+        input_data.iloc[:, 1:] = input_data.iloc[:, 1:].rolling(winsize, min_periods=min_periods, axis=1).mean()
+
+        return input_data
 
     def set_nas_to_0(self, input_data):
         """
