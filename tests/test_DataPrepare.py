@@ -8,7 +8,32 @@ import pandas as pd
 import numpy as np
 #todo: use monkey patch to handle the config requirements!
 
-def test_imputation(tmpdir):
+def test_imputation1(tmpdir):
+
+    ## create mock config
+    mock_conf = tmpdir.mkdir('mock_config').join('mock_config.ini')
+    mock_conf.write('[data_sources]\ndata_source = local')
+
+    ## set up classes and create mock data
+    loader = coelurus.Loader(str(tmpdir.join('mock_config', 'mock_config.ini')))
+
+    loader.input_data = pd.DataFrame({'protein_id': ['A', 'B', 'C', 'D', 'E'], 'F1A': [0, 0, 0, 0, 0],
+                                      'F2A': [0, 0, 0, 0, 0], 'F3A': [0, 0, 0, 0, 0],
+                                      'F4A': [0, 0, 0, 0, 0], 'F5A': [0, 0, 0, 0, 0],
+                                      'F6A': [0, 0, 0, 0, 0], 'F7A': [0, 0, 0, 0, 0]},
+                                     columns=['protein_id', 'F1A', 'F2A', 'F3A', 'F4A', 'F5A', 'F6A', 'F7A'])
+
+    expected_results = loader.input_data.copy()  # should be unchanged
+
+    expected_results.iloc[:, 1:] = expected_results.iloc[:, 1:].astype(np.float64)
+
+    val = coelurus.Validator(loader)
+    dfilter = coelurus.DataPrepare(val)
+    imputed = dfilter.impute_missing_values(loader.input_data.copy())
+
+    return pd.testing.assert_frame_equal(imputed, expected_results)
+
+def test_imputation2(tmpdir):
 
     ## create mock config
     mock_conf = tmpdir.mkdir('mock_config').join('mock_config.ini')
@@ -33,5 +58,5 @@ def test_imputation(tmpdir):
     val = coelurus.Validator(loader)
     dfilter = coelurus.DataPrepare(val)
     imputed = dfilter.impute_missing_values(loader.input_data.copy())
-    
+
     return pd.testing.assert_frame_equal(imputed, expected_results)
