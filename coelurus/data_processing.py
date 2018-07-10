@@ -215,12 +215,12 @@ class DataPrepare(object):
     def smooth_profiles(self, input_data):
         """
         Performs profile smoothing using rolling window of size 3 and mean values.
-        todo: write test for this function!
+        todo: check if it helps, by default disabled in config
         :return: pandas DataFrame with smoothened input profiles.
         """
         winsize = self.config.getint('filter_options', 'smooth_window_size')
         min_periods = winsize - 1
-        input_data.iloc[:, 1:] = input_data.iloc[:, 1:].rolling(winsize, min_periods=min_periods, axis=1).mean()
+        input_data.iloc[:, 1:] = input_data.iloc[:, 1:].rolling(winsize, min_periods=min_periods, axis=1).median()
 
         return input_data
 

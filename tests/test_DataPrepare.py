@@ -124,15 +124,15 @@ def test_smoothing1(tmpdir):
     loader.config.set('filter_options', 'smooth_window_size', '3')
 
     loader.input_data = pd.DataFrame({'protein_id': ['A'], 'F1A': [9],
-                                      'F2A': [6], 'F3A': [6],
+                                      'F2A': [6], 'F3A': [7],
                                       'F4A': [6], 'F5A': [3],
                                       'F6A': [9], 'F7A': [3]},
                                      columns=['protein_id', 'F1A', 'F2A', 'F3A', 'F4A', 'F5A', 'F6A', 'F7A'])
 
     expected_result = pd.DataFrame({'protein_id': ['A'], 'F1A': [np.nan],
                                       'F2A': [7.5], 'F3A': [7.0],
-                                      'F4A': [6.0], 'F5A': [5.0],
-                                      'F6A': [6.0], 'F7A': [5.0]},
+                                      'F4A': [6.0], 'F5A': [6.0],
+                                      'F6A': [6.0], 'F7A': [3.0]},
                                      columns=['protein_id', 'F1A', 'F2A', 'F3A', 'F4A', 'F5A', 'F6A', 'F7A'])
 
     val = coelurus.Validator(loader)
