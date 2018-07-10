@@ -8,6 +8,7 @@ The output from the module is ready to be used by the machine learning part of t
 import pandas as pd
 import ConfigParser
 import numpy as np
+from multiprocessing.pool import ThreadPool
 
 class Loader(object):
     """ Input data loader.
@@ -264,7 +265,7 @@ class DataPrepare(object):
         :return: pandas DataFrame with filtered input profiles.
         todo: seems that the filter is not very handy yet? remove?
         """
-        threshold = self.config.getfloat('filter_options','min_signal_to_noise')
+        threshold = self.config.getfloat('filter_options', 'min_signal_to_noise')
         profiles = input_data.iloc[:, 1:]
         max_values = profiles.apply(max, 1)
         profiles[profiles == 0] = np.nan  # set to NaN for calculations only, the data is unchanged
@@ -275,33 +276,57 @@ class DataPrepare(object):
 
         return input_data
 
-    def apply_filters(self):
+    def transform_wrapper(self, data):
+        """
+        A wrapper to pool tasks to be run in parallel by apply_transformations().
+        :param data: A pandas DataFrame with given replicate subset of the profiles.
+        :return: A pandas DataDrame with transformations applied to the data.
+        """
+
+        data = self.set_nas_to_0(data)
+        data = self.impute_missing_values(data)
+        data = self.filter_missing_profiles(data)
+
+        if self.config.get('filter_options', 'enable_smoothing'):
+            data = self.smooth_profiles(data)
+
+        if self.config.getfloat('filter_options', 'min_signal_to_noise') > 0:
+            data = self.filter_signal_to_noise(data)
+
+        return data
+
+    def apply_transformations(self):
         """
         Applies the filter functions to the data.
         :return:
         """
-        for i in range(len(self.replicate_data)):
-            self.replicate_data[i] = self.set_nas_to_0(self.replicate_data[i])
-            self.replicate_data[i] = self.impute_missing_values(self.replicate_data[i])
-            self.replicate_data[i] = self.filter_missing_profiles(self.replicate_data[i])
+        nthreads = self.config.getint('system_options', 'num_threads')
+        pool = ThreadPool(nthreads)
 
-        if self.config.get('filter_options', 'enable_smoothing'):
-            for i in range(len(self.replicate_data)):
-                self.replicate_data[i] = self.smooth_profiles(self.replicate_data[i])
+        pool.map(self.transform_wrapper, self.replicate_data)
+        pool.close()
 
-        if self.config.getfloat('filter_options','min_signal_to_noise') > 0:
-            for i in range(len(self.replicate_data)):
-                self.replicate_data[i] = self.filter_signal_to_noise(self.replicate_data[i])
-
+        self.data_imputed = True
         print("Filters applied to .replicate_data list.")
 
 
 # GaussFitter etc will be a separate submodule
-# foo = Loader("./config.ini")
-# foo.load_data()
-# val = Validator(foo)
-# val.enforce_column_names()
-# val.quality_check()
-# data_filter = DataPrepare(val)
-## ...impute()
-#data_filter.apply_filters()
+foo = Loader("./config.ini")
+foo.load_data()
+val = Validator(foo)
+val.enforce_column_names()
+val.quality_check()
+data_filter = DataPrepare(val)
+
+# applying tranformations testing
+import copy
+import seaborn as sns
+import matplotlib.pyplot as plt
+untouched = copy.copy(data_filter.replicate_data)
+data_filter.apply_transformations()
+touched = data_filter.replicate_data
+
+fig, ax = plt.subplots(1,2)
+sns.heatmap(untouched[0].iloc[0:50,1:], ax=ax[0])
+sns.heatmap(touched[0].iloc[0:50,1:], ax=ax[1])
+fig.show()
