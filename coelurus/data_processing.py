@@ -218,7 +218,7 @@ class DataPrepare(object):
         todo: write test for this function!
         :return: pandas DataFrame with smoothened input profiles.
         """
-        winsize = self.config.readint('filter_options', 'smooth_window_size')
+        winsize = self.config.getint('filter_options', 'smooth_window_size')
         min_periods = winsize - 1
         input_data.iloc[:, 1:] = input_data.iloc[:, 1:].rolling(winsize, min_periods=min_periods, axis=1).mean()
 
