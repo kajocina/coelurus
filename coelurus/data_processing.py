@@ -161,6 +161,7 @@ class DataPrepare(object):
             self.validator.quality_check()
 
         self.replicate_data = self.split_reps_to_list(self.input_data)
+        self.replicate_data_transformed = None
         self.data_imputed = False
 
     def split_reps_to_list(self, data):
@@ -303,9 +304,10 @@ class DataPrepare(object):
         nthreads = self.config.getint('system_options', 'num_threads')
         pool = ThreadPool(nthreads)
 
-        pool.map(self.transform_wrapper, self.replicate_data)
+        results = pool.map(self.transform_wrapper, self.replicate_data)
         pool.close()
-
+        pool.join()
+        self.replicate_data_transformed = results
         self.data_imputed = True
         print("Filters applied to .replicate_data list.")
 
@@ -317,16 +319,4 @@ val = Validator(foo)
 val.enforce_column_names()
 val.quality_check()
 data_filter = DataPrepare(val)
-
-# applying tranformations testing
-import copy
-import seaborn as sns
-import matplotlib.pyplot as plt
-untouched = copy.copy(data_filter.replicate_data)
 data_filter.apply_transformations()
-touched = data_filter.replicate_data
-
-fig, ax = plt.subplots(1,2)
-sns.heatmap(untouched[0].iloc[0:50,1:], ax=ax[0])
-sns.heatmap(touched[0].iloc[0:50,1:], ax=ax[1])
-fig.show()
