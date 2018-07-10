@@ -215,11 +215,10 @@ class DataPrepare(object):
     def smooth_profiles(self, input_data):
         """
         Performs profile smoothing using rolling window of size 3 and mean values.
+        todo: write test for this function!
         :return: pandas DataFrame with smoothened input profiles.
-        todo: add option to the config
-        todo: add to applying function (after imputation)
         """
-        winsize = self.config.readint('filter_options','smooth_window_size')
+        winsize = self.config.readint('filter_options', 'smooth_window_size')
         min_periods = winsize - 1
         input_data.iloc[:, 1:] = input_data.iloc[:, 1:].rolling(winsize, min_periods=min_periods, axis=1).mean()
 
@@ -283,9 +282,12 @@ class DataPrepare(object):
         """
         for i in range(len(self.replicate_data)):
             self.replicate_data[i] = self.set_nas_to_0(self.replicate_data[i])
-            # todo: add imputation
+            self.replicate_data[i] = self.impute_missing_values(self.replicate_data[i])
             self.replicate_data[i] = self.filter_missing_profiles(self.replicate_data[i])
-            # todo: add smoothing
+
+        if self.config.get('filter_options', 'enable_smoothing'):
+            for i in range(len(self.replicate_data)):
+                self.replicate_data[i] = self.smooth_profiles(self.replicate_data[i])
 
         if self.config.getfloat('filter_options','min_signal_to_noise') > 0:
             for i in range(len(self.replicate_data)):
