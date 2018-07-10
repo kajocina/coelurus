@@ -13,6 +13,7 @@ class Loader(object):
     """ Input data loader.
 
     This class takes care of data reading and performing basic data quality checks.
+    todo: add automatic re-ordering of columns (if ID columns is not first)
 
     """
     def __init__(self, config_path):
@@ -198,7 +199,7 @@ class DataPrepare(object):
             arr[1] = np.round((arr[0]+arr[2])/2, 3)
             return arr
 
-        for i in range(profiles.shape[1] - 3):
+        for i in range(profiles.shape[1] - 2):
             window = profiles.iloc[:, i:i+3]
             # which rows should be imputed (only if middle value is the only missing)
             imp_row = np.all(window.isna().apply(lambda x: x == [False, True, False], axis=1), axis=1)
@@ -206,7 +207,9 @@ class DataPrepare(object):
             profiles.iloc[imp_row, i:i+3] = window.loc[imp_row].apply(lambda x: mean_impute(x), axis=1)
 
         input_data.iloc[:, 1:] = profiles
+        input_data = self.set_nas_to_0(input_data)
         self.data_imputed = True
+
         return input_data
 
     def smooth_profiles(self, input_data):
@@ -228,7 +231,7 @@ class DataPrepare(object):
         :param input_data: pandas DataFrame with input profiles.
         :return: pandas DataFrame with input profiles.
         """
-        input_data.iloc[:, 1:][input_data.iloc[:, 1:].isnull()] = 0
+        input_data.iloc[:, 1:] = input_data.iloc[:, 1:].fillna(value=0)
         return input_data
 
     def filter_missing_profiles(self, input_data):
@@ -280,7 +283,9 @@ class DataPrepare(object):
         """
         for i in range(len(self.replicate_data)):
             self.replicate_data[i] = self.set_nas_to_0(self.replicate_data[i])
+            # todo: add imputation
             self.replicate_data[i] = self.filter_missing_profiles(self.replicate_data[i])
+            # todo: add smoothing
 
         if self.config.getfloat('filter_options','min_signal_to_noise') > 0:
             for i in range(len(self.replicate_data)):
