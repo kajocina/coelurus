@@ -313,10 +313,10 @@ class DataPrepare(object):
 
 
 # GaussFitter etc will be a separate submodule
-foo = Loader("./config.ini")
-foo.load_data()
-val = Validator(foo)
-val.enforce_column_names()
-val.quality_check()
-data_filter = DataPrepare(val)
-data_filter.apply_transformations()
+# foo = Loader("./config.ini")
+# foo.load_data()
+# val = Validator(foo)
+# val.enforce_column_names()
+# val.quality_check()
+# data_filter = DataPrepare(val)
+# data_filter.apply_transformations()
