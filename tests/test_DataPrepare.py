@@ -1,11 +1,12 @@
 """
-Tests for DataPrepare class and its methods. Run by pytest.
+Tests for DataProcessor class and its methods. Run by pytest.
 """
 import sys
-sys.path.append("..")
-import coelurus
+#sys.path.append("..")
+from coelurus import Loader, Validator, DataProcessor
 import pandas as pd
 import numpy as np
+# todo: remove example data from tests and set up separate fixtures in a file
 
 def test_imputation1(tmpdir):
 
@@ -14,7 +15,7 @@ def test_imputation1(tmpdir):
     mock_conf.write('[data_sources]\ndata_source = local')
 
     # set up classes and create mock data
-    loader = coelurus.Loader(str(tmpdir.join('mock_config', 'mock_config.ini')))
+    loader = Loader(str(tmpdir.join('mock_config', 'mock_config.ini')))
 
     loader.input_data = pd.DataFrame({'protein_id': ['A', 'B', 'C', 'D', 'E'], 'F1A': [0, 0, 0, 0, 0],
                                       'F2A': [0, 0, 0, 0, 0], 'F3A': [0, 0, 0, 0, 0],
@@ -26,11 +27,11 @@ def test_imputation1(tmpdir):
 
     expected_result.iloc[:, 1:] = expected_result.iloc[:, 1:].astype(np.float64)
 
-    val = coelurus.Validator(loader)
-    dfilter = coelurus.DataPrepare(val)
+    val = Validator(loader)
+    dfilter = DataProcessor(val)
     imputed = dfilter.impute_missing_values(loader.input_data.copy())
 
-    return pd.testing.assert_frame_equal(imputed, expected_result)
+    pd.testing.assert_frame_equal(imputed, expected_result)
 
 
 def test_imputation2(tmpdir):
@@ -40,7 +41,7 @@ def test_imputation2(tmpdir):
     mock_conf.write('[data_sources]\ndata_source = local')
 
     # set up classes and create mock data
-    loader = coelurus.Loader(str(tmpdir.join('mock_config', 'mock_config.ini')))
+    loader = Loader(str(tmpdir.join('mock_config', 'mock_config.ini')))
 
     loader.input_data = pd.DataFrame({'protein_id': ['A', 'B', 'C', 'D', 'E'], 'F1A': [2, 0, 0, 0, 0],
                                       'F2A': [1, 1, 1, 0, 0], 'F3A': [1, 0, 2, 1, 0],
@@ -55,11 +56,11 @@ def test_imputation2(tmpdir):
                                     columns=['protein_id', 'F1A', 'F2A', 'F3A', 'F4A', 'F5A', 'F6A', 'F7A'])
     expected_result.iloc[:, 1:] = expected_result.iloc[:, 1:].astype(np.float64)
 
-    val = coelurus.Validator(loader)
-    dfilter = coelurus.DataPrepare(val)
+    val = Validator(loader)
+    dfilter = DataProcessor(val)
     imputed = dfilter.impute_missing_values(loader.input_data.copy())
 
-    return pd.testing.assert_frame_equal(imputed, expected_result)
+    pd.testing.assert_frame_equal(imputed, expected_result)
 
 
 def test_filter_missing_profiles1(tmpdir):
@@ -69,7 +70,7 @@ def test_filter_missing_profiles1(tmpdir):
     mock_conf.write('[data_sources]\ndata_source = local')
 
     # set up classes and create mock data/config
-    loader = coelurus.Loader(str(tmpdir.join('mock_config', 'mock_config.ini')))
+    loader = Loader(str(tmpdir.join('mock_config', 'mock_config.ini')))
     loader.config.add_section('filter_options')
     loader.config.set('filter_options', 'min_consecutive_fractions', '3')
 
@@ -81,11 +82,11 @@ def test_filter_missing_profiles1(tmpdir):
 
     expected_result = loader.input_data.copy()  # should be unchanged
 
-    val = coelurus.Validator(loader)
-    dfilter = coelurus.DataPrepare(val)
+    val = Validator(loader)
+    dfilter = DataProcessor(val)
     filtered = dfilter.filter_missing_profiles(loader.input_data)
 
-    return pd.testing.assert_frame_equal(filtered, expected_result)
+    pd.testing.assert_frame_equal(filtered, expected_result)
 
 def test_filter_missing_profiles2(tmpdir):
 
@@ -94,7 +95,7 @@ def test_filter_missing_profiles2(tmpdir):
     mock_conf.write('[data_sources]\ndata_source = local')
 
     # set up classes and create mock data/config
-    loader = coelurus.Loader(str(tmpdir.join('mock_config', 'mock_config.ini')))
+    loader = Loader(str(tmpdir.join('mock_config', 'mock_config.ini')))
     loader.config.add_section('filter_options')
     loader.config.set('filter_options', 'min_consecutive_fractions', '3')
 
@@ -106,11 +107,11 @@ def test_filter_missing_profiles2(tmpdir):
 
     expected_result = loader.input_data.copy().iloc[[0, 1, 4], :]  # C and D should be removed only
 
-    val = coelurus.Validator(loader)
-    dfilter = coelurus.DataPrepare(val)
+    val = Validator(loader)
+    dfilter = DataProcessor(val)
     filtered = dfilter.filter_missing_profiles(loader.input_data.copy())
 
-    return pd.testing.assert_frame_equal(filtered, expected_result)
+    pd.testing.assert_frame_equal(filtered, expected_result)
 
 def test_smoothing1(tmpdir):
 
@@ -119,7 +120,7 @@ def test_smoothing1(tmpdir):
     mock_conf.write('[data_sources]\ndata_source = local')
 
     # set up classes and create mock data/config
-    loader = coelurus.Loader(str(tmpdir.join('mock_config', 'mock_config.ini')))
+    loader = Loader(str(tmpdir.join('mock_config', 'mock_config.ini')))
     loader.config.add_section('filter_options')
     loader.config.set('filter_options', 'smooth_window_size', '3')
 
@@ -135,8 +136,8 @@ def test_smoothing1(tmpdir):
                                       'F6A': [6.0], 'F7A': [3.0]},
                                      columns=['protein_id', 'F1A', 'F2A', 'F3A', 'F4A', 'F5A', 'F6A', 'F7A'])
 
-    val = coelurus.Validator(loader)
-    dfilter = coelurus.DataPrepare(val)
+    val = Validator(loader)
+    dfilter = DataProcessor(val)
     smoothed = dfilter.smooth_profiles(loader.input_data.copy())
 
-    return pd.testing.assert_frame_equal(smoothed, expected_result)
+    pd.testing.assert_frame_equal(smoothed, expected_result)

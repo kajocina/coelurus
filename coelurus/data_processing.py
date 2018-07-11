@@ -10,6 +10,7 @@ import ConfigParser
 import numpy as np
 from multiprocessing.pool import ThreadPool
 
+
 class Loader(object):
     """ Input data loader.
 
@@ -141,7 +142,7 @@ class Validator(object):
             raise
 
 
-class DataPrepare(object):
+class DataProcessor(object):
     """
     Prepares input data for Gaussian fitting using option from the specified config file.
     1. Splits data by replicates into a list.
@@ -311,12 +312,3 @@ class DataPrepare(object):
         self.data_imputed = True
         print("Filters applied to .replicate_data list.")
 
-
-# GaussFitter etc will be a separate submodule
-# foo = Loader("./config.ini")
-# foo.load_data()
-# val = Validator(foo)
-# val.enforce_column_names()
-# val.quality_check()
-# data_filter = DataPrepare(val)
-# data_filter.apply_transformations()

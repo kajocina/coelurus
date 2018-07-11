@@ -1,1 +1,1 @@
-from data_processing import Loader, Validator, DataPrepare
+from coelurus.data_processing import Loader, Validator, DataProcessor
