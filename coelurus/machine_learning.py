@@ -7,7 +7,7 @@ import pandas as pd
 import ConfigParser
 import numpy as np
 from coelurus.data_processing import Loader, Validator, DataProcessor
-from sklearn.mixture import BayesianGaussianMixture
+from sklearn.mixture import GaussianMixture
 from multiprocessing.pool import ThreadPool
 
 
@@ -35,10 +35,25 @@ class FeatureIntegrator(object):
         profiles_norm = profiles.apply(lambda x: x / maxes, axis=0)  # scale 0-1 reach row
 
         # ML part
-        bmm_model = BayesianGaussianMixture(n_components=15) #todo add a component selection routine
-        bmm_model = bmm_model.fit(profiles_norm)
-        bmm = bmm_model.predict_proba(profiles_norm)
-        bmm_df = pd.DataFrame(bmm, index=profiles_norm.index)
+        # select the best number of components
+        n_component_testing = range(2,
+                                    self.config.getint('data_sources', 'number_of_fractions') -
+                                    self.config.getint('filter_options', 'min_consecutive_fractions'))
+        component_bics = []
+        for n in n_component_testing:
+            bmm_model = GaussianMixture(n_components=n)
+            bmm_model = bmm_model.fit(profiles_norm)
+            current_bic = bmm_model.bic(profiles_norm)
+            component_bics.append((n, current_bic))
+        component_bics.sort(key=lambda x: x[1])
+        best_n = component_bics[0][0]
+
+        # use the model with the lowest Bayesian information criterion
+        print("Using {0} components, selected by BIC.".format([best_n]))
+        bmm_final_model = GaussianMixture(n_components=best_n)
+        bmm_final_model = bmm_final_model.fit(profiles_norm)
+        bmm_final = bmm_final_model.predict_proba(profiles_norm)
+        bmm_df = pd.DataFrame(bmm_final, index=profiles_norm.index)
 
         return bmm_df
 
@@ -76,3 +91,6 @@ class FeatureIntegrator(object):
 # data_filter.apply_transformations()
 integrator = FeatureIntegrator(data_filter)
 integrator.extract_features()
+
+import matplotlib
+matplotlib.use()
