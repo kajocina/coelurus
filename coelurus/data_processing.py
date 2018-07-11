@@ -45,6 +45,7 @@ class Loader(object):
         if self.data_source == 'local':
             self.input_path = self.config.get('data_sources', 'input_data_path')
             self.input_data = pd.read_csv(self.input_path)
+
         elif self.data_source == 'AWS':
             # import boto3
             pass  # add AWS S3 support using boto3
@@ -299,6 +300,10 @@ class DataProcessor(object):
         """
 
         data = self.set_nas_to_0(data)
+
+        if self.config.getint('filter_options', 'remove_n_last_fracs') > 0:
+            data = self.remove_n_last_fractions(data)
+
         data = self.impute_missing_values(data)
         data = self.filter_missing_profiles(data)
 
@@ -307,9 +312,6 @@ class DataProcessor(object):
 
         if self.config.getfloat('filter_options', 'min_signal_to_noise') > 0:
             data = self.filter_signal_to_noise(data)
-
-        if self.config.getint('filter_options', 'remove_n_last_fracs') > 0:
-            data = self.remove_n_last_fractions(data)
 
         return data
 
@@ -327,4 +329,3 @@ class DataProcessor(object):
         self.replicate_data_transformed = results
         self.data_imputed = True
         print("Filters applied to .replicate_data list.")
-
