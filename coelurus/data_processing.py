@@ -95,6 +95,10 @@ class Validator(object):
             print("The input data has less than 10 rows/profiles. Check the file again?")
             return False
 
+        if self.input_data.shape[1] <= self.config.getint('filter_options', 'remove_n_last_fracs'):
+            print("Config.ini is set to remove too many right-most (last) factions (remove_n_last_fracs). Change it!")
+            return False
+
         expected_protein_id = self.config.get('data_sources', 'input_data_protein_id')
         if not np.any(self.input_data.columns.str.contains(expected_protein_id)):
             print("The data seems to be missing the specific protein ID column. Check the config.ini.")
@@ -278,6 +282,15 @@ class DataProcessor(object):
 
         return input_data
 
+    def remove_n_last_fractions(self, input_data):
+        """
+        Removes N last fractions if there was a cut off in the experiment (it contains a lot of proteins
+        that would elute later).
+        :return: pandas DataFrame with N last fractions removed
+        """
+        new_rightmost_ix = input_data.shape[1] - self.config.getint('filter_options', 'remove_n_last_fracs')
+        return input_data.iloc[:, 0:new_rightmost_ix]
+
     def transform_wrapper(self, data):
         """
         A wrapper to pool tasks to be run in parallel by apply_transformations().
@@ -294,6 +307,9 @@ class DataProcessor(object):
 
         if self.config.getfloat('filter_options', 'min_signal_to_noise') > 0:
             data = self.filter_signal_to_noise(data)
+
+        if self.config.getint('filter_options', 'remove_n_last_fracs') > 0:
+            data = self.remove_n_last_fractions(data)
 
         return data
 
