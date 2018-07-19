@@ -10,6 +10,9 @@ from coelurus.data_processing import Loader, Validator, DataProcessor
 from sklearn.mixture import GaussianMixture
 from multiprocessing.pool import ThreadPool
 
+# temp!!
+import matplotlib
+matplotlib.use("TkAgg")
 
 class FeatureIntegrator(object):
     """
@@ -17,45 +20,40 @@ class FeatureIntegrator(object):
     It takes care of applying them in proper order to the data set.
     """
     def __init__(self, processor):
+
         self.processor = processor
         self.config = processor.config
         self.replicate_data_transformed = processor.replicate_data_transformed
         self.data_new_features = None  # this will hold newly extracted features
+        if self.config.getint('system_options','debug'):
+            import logging as log
+            log.basicConfig(filename='debug.log', level=log.DEBUG, format='%(asctime)s %(message)s',
+                            datefmt="%Y-%m-%d %H:%M")
 
     def fit_gaussians(self, profiles):
         """
-        Fits Bayesian Gaussian mixture model to the profile set.
-        :return: Pandas DF with probabilities for each profile that it belongs to a given component.
-        todo: set n_components to be a config parameter
+        Fits Gaussian mixture models to each profile with automatic component selection.
+        :return: dictionary with each profile name and assigned lists of tuples
+        holding means and std. dev. of fitted Gaussians
         """
         if np.all(profiles.iloc[:, 1].isnull()):
             profiles = profiles.drop([profiles.columns[1]], axis=1)
-        profiles = profiles.set_index(self.config.get('data_sources', 'input_data_protein_id'), drop=True, inplace=False)
-        maxes = np.max(profiles, axis=1)
-        profiles_norm = profiles.apply(lambda x: x / maxes, axis=0)  # scale 0-1 reach row
+        profiles = profiles.set_index(self.config.get('data_sources', 'input_data_protein_id'), drop=True,
+                                      inplace=False)
+        # add negligible Gaussian noise close to 0 for each feature
+        profiles[profiles == 0] = np.abs(np.random.normal(10, 1, size=profiles[profiles == 0].shape))
 
-        # ML part
-        # select the best number of components
-        n_component_testing = range(2,
-                                    self.config.getint('data_sources', 'number_of_fractions') -
-                                    self.config.getint('filter_options', 'min_consecutive_fractions'))
-        component_bics = []
-        for n in n_component_testing:
-            bmm_model = GaussianMixture(n_components=n)
-            bmm_model = bmm_model.fit(profiles_norm)
-            current_bic = bmm_model.bic(profiles_norm)
-            component_bics.append((n, current_bic))
-        component_bics.sort(key=lambda x: x[1])
-        best_n = component_bics[0][0]
+        # create a probability matrix to sample data for each profile
+        sig_sums = profiles.sum(axis=1)
+        profile_probs = profiles.apply(lambda x: x / sig_sums, axis=0)
 
-        # use the model with the lowest Bayesian information criterion
-        print("Using {0} components, selected by BIC.".format([best_n]))
-        bmm_final_model = GaussianMixture(n_components=best_n)
-        bmm_final_model = bmm_final_model.fit(profiles_norm)
-        bmm_final = bmm_final_model.predict_proba(profiles_norm)
-        bmm_df = pd.DataFrame(bmm_final, index=profiles_norm.index)
+        for profile in profile_probs:
+            sampled_data = np.random.choice(np.arange(2, profile.shape[0] + 2), size=10000, p=profile.tolist())
 
-        return bmm_df
+            # select a Gaussian mixture model using the sampled data
+            models = [GaussianMixture(n_components=i, random_state=42) for i in range(1, 6)]
+            models = [model.fit(sampled_data.reshape(-1, 1)) for model in models]
+            bics = [model.bic(sampled_data.reshape(-1, 1)) for model in models]
 
     def extract_wrapper(self, data):
         """
@@ -91,6 +89,3 @@ class FeatureIntegrator(object):
 # data_filter.apply_transformations()
 integrator = FeatureIntegrator(data_filter)
 integrator.extract_features()
-
-import matplotlib
-matplotlib.use()

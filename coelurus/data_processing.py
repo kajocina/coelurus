@@ -307,11 +307,11 @@ class DataProcessor(object):
         data = self.impute_missing_values(data)
         data = self.filter_missing_profiles(data)
 
-        if self.config.get('filter_options', 'enable_smoothing'):
+        if self.config.getint('filter_options', 'enable_smoothing'):
             data = self.smooth_profiles(data)
 
-        if self.config.getfloat('filter_options', 'min_signal_to_noise') > 0:
-            data = self.filter_signal_to_noise(data)
+        # if self.config.getfloat('filter_options', 'min_signal_to_noise') > 0:
+        #     data = self.filter_signal_to_noise(data)
 
         return data
 
