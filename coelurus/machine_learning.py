@@ -12,7 +12,8 @@ from multiprocessing.pool import ThreadPool
 
 # temp!!
 import matplotlib
-matplotlib.use("TkAgg")
+matplotlib.use('TkAgg')
+
 
 class FeatureIntegrator(object):
     """
@@ -48,10 +49,13 @@ class FeatureIntegrator(object):
         profile_probs = profiles.apply(lambda x: x / sig_sums, axis=0)
 
         for profile in profile_probs:
-            sampled_data = np.random.choice(np.arange(2, profile.shape[0] + 2), size=10000, p=profile.tolist())
+            sampled_data = np.random.choice(np.arange(2, profile.shape[0] + 2), size=100000, p=profile.tolist())
+
+            # temp: add noise to the sampled data
+            sampled_data = sampled_data + np.random.normal(0.1,0.5,size=len(sampled_data))
 
             # select a Gaussian mixture model using the sampled data
-            models = [GaussianMixture(n_components=i, random_state=42) for i in range(1, 6)]
+            models = [GaussianMixture(n_components=i, covariance_type='spherical', reg_covar=5e6) for i in range(1, 6)]
             models = [model.fit(sampled_data.reshape(-1, 1)) for model in models]
             bics = [model.bic(sampled_data.reshape(-1, 1)) for model in models]
 
@@ -80,12 +84,39 @@ class FeatureIntegrator(object):
         self.data_new_features = results_joined
 
 
-# foo = Loader("./config.ini")
-# foo.load_data()
-# val = Validator(foo)
-# val.enforce_column_names()
-# val.quality_check()
-# data_filter = DataProcessor(val)
-# data_filter.apply_transformations()
+foo = Loader("./config.ini")
+foo.load_data()
+val = Validator(foo)
+val.enforce_column_names()
+val.quality_check()
+data_filter = DataProcessor(val)
+data_filter.apply_transformations()
 integrator = FeatureIntegrator(data_filter)
-integrator.extract_features()
+
+# test the approach
+profiles = data_filter.replicate_data_transformed[0]
+if np.all(profiles.iloc[:, 1].isnull()):
+    profiles = profiles.drop([profiles.columns[1]], axis=1)
+profiles = profiles.set_index('protein_id', drop=True,
+                              inplace=False)
+# add negligible Gaussian noise close to 0 for each feature
+profiles[profiles == 0] = np.abs(np.random.normal(10, 1, size=profiles[profiles == 0].shape))
+
+# create a probability matrix to sample data for each profile
+sig_sums = profiles.sum(axis=1)
+profile_probs = profiles.apply(lambda x: x / sig_sums, axis=0)
+from plotnine import *
+profile = profile_probs.iloc[1,:]
+sampled_data = np.random.choice(np.arange(2, profile.shape[0] + 2), size=50000, p=profile.tolist())
+# temp: add noise to the sampled data
+sampled_data = sampled_data + np.random.normal(1, 1, size=len(sampled_data))
+
+# select a Gaussian mixture model using the sampled data
+models = [GaussianMixture(n_components=i, covariance_type='full') for i in range(1, 6)]
+models = [model.fit(sampled_data.reshape(-1, 1)) for model in models]
+bics = [model.bic(sampled_data.reshape(-1, 1)) for model in models]
+models[np.argmin(bics)].means_
+
+plot = ggplot(pd.DataFrame({'data':sampled_data})) + geom_histogram(aes('data'))
+for mean in models[np.argmin(bics)].means_:
+    plot = plot + geom_vline(xintercept=mean)
