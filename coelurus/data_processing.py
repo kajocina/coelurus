@@ -275,7 +275,27 @@ class DataProcessor(object):
         profiles = input_data.iloc[:, 1:]
         max_values = profiles.apply(max, 1)
         thresh_values = threshold*max_values
-        profiles[profiles.apply(lambda x: x < thresh_values,axis=0)] = 0
+        profiles[profiles.apply(lambda x: x < thresh_values, axis=0)] = 0
+        input_data.iloc[:, 1:] = profiles
+
+        return input_data
+
+    def remove_singletons(self, input_data):
+        """
+        Sets features surrounded by 0's to 0.
+        :param input_data:
+        :return:
+        todo: fill docstrings
+        """
+        profiles = input_data.iloc[:, 1:]
+
+        for i in range(profiles.shape[1]-3):
+            window = profiles.iloc[:,i:i+3]
+            left = window.iloc[:, 0] == 0
+            right = window.iloc[:, 2] == 0
+            idx_to_flatten = np.where(left == right)[0]
+            window.iloc[idx_to_flatten, 1] = 0
+            profiles.iloc[:, i:i+3] = window
         input_data.iloc[:, 1:] = profiles
 
         return input_data
@@ -309,6 +329,8 @@ class DataProcessor(object):
 
         if self.config.getfloat('filter_options', 'min_signal_to_noise') > 0:
             data = self.filter_signal_to_noise(data)
+
+        data = self.remove_singletons(data)
 
         return data
 
