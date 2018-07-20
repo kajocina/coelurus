@@ -267,19 +267,16 @@ class DataProcessor(object):
 
     def filter_signal_to_noise(self, input_data):
         """
-        Removes profiles which have very low relative max signal. Threshold specified in config (min_signal_to_noise).
-        Columns with 0's are NOT used for background signal calculation.
+        Sets values that are below configured threshold * max value (for each profile), to zeros.
         :return: pandas DataFrame with filtered input profiles.
         todo: seems that the filter is not very handy yet? remove?
         """
         threshold = self.config.getfloat('filter_options', 'min_signal_to_noise')
         profiles = input_data.iloc[:, 1:]
         max_values = profiles.apply(max, 1)
-        profiles[profiles == 0] = np.nan  # set to NaN for calculations only, the data is unchanged
-        profile_means = np.nanmean(profiles, axis=1)
-        rows_stay = max_values * threshold > profile_means
-
-        input_data = input_data.loc[rows_stay, :]
+        thresh_values = threshold*max_values
+        profiles[profiles.apply(lambda x: x < thresh_values,axis=0)] = 0
+        input_data.iloc[:, 1:] = profiles
 
         return input_data
 
@@ -310,8 +307,8 @@ class DataProcessor(object):
         if self.config.getint('filter_options', 'enable_smoothing'):
             data = self.smooth_profiles(data)
 
-        # if self.config.getfloat('filter_options', 'min_signal_to_noise') > 0:
-        #     data = self.filter_signal_to_noise(data)
+        if self.config.getfloat('filter_options', 'min_signal_to_noise') > 0:
+            data = self.filter_signal_to_noise(data)
 
         return data
 
