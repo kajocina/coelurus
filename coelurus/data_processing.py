@@ -223,7 +223,6 @@ class DataProcessor(object):
     def smooth_profiles(self, input_data):
         """
         Performs profile smoothing using rolling window of size 3 and mean values.
-        todo: check if it helps, by default disabled in config
         :return: pandas DataFrame with smoothened input profiles.
         """
         winsize = self.config.getint('filter_options', 'smooth_window_size')
@@ -289,13 +288,12 @@ class DataProcessor(object):
         """
         profiles = input_data.iloc[:, 1:]
 
-        for i in range(profiles.shape[1]-3):
-            window = profiles.iloc[:,i:i+3]
-            left = window.iloc[:, 0] == 0
-            right = window.iloc[:, 2] == 0
-            idx_to_flatten = np.where(left == right)[0]
-            window.iloc[idx_to_flatten, 1] = 0
-            profiles.iloc[:, i:i+3] = window
+        for i in range(profiles.shape[1] - 2):
+            window = profiles.iloc[:, i:i + 3]
+            win_bool = window == 0
+            idx_to_flatten = win_bool.apply(lambda x: np.all(x == [True, False, True]), axis=1)
+            window.loc[idx_to_flatten, window.columns[1]] = 0
+            profiles.iloc[:, i:i + 3] = window
         input_data.iloc[:, 1:] = profiles
 
         return input_data
@@ -321,8 +319,8 @@ class DataProcessor(object):
         if self.config.getint('filter_options', 'remove_n_last_fracs') > 0:
             data = self.remove_n_last_fractions(data)
 
-        #data = self.remove_singletons(data)
         data = self.impute_missing_values(data)
+        data = self.remove_singletons(data)
         data = self.filter_missing_profiles(data)
 
         if self.config.getint('filter_options', 'enable_smoothing'):

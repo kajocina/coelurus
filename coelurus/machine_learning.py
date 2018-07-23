@@ -89,7 +89,7 @@ data_filter.apply_transformations()
 integrator = FeatureIntegrator(data_filter)
 
 # test the approach
-profiles = data_filter.replicate_data_transformed[0]
+profiles = data_filter.replicate_data_transformed[0].copy()
 if np.all(profiles.iloc[:, 1].isnull()):
     profiles = profiles.drop([profiles.columns[1]], axis=1)
 profiles = profiles.set_index('protein_id', drop=True,
@@ -104,18 +104,18 @@ from plotnine import *
 import warnings
 warnings.filterwarnings('ignore')
 
-example = 0
+example = 3
 profile = profile_probs.iloc[example,:]
-sampled_data = np.random.choice(np.arange(2, profile.shape[0] + 2), size=10000, p=profile.tolist())
-sampled_data = sampled_data + np.random.normal(0.2, 0.2, size=len(sampled_data))
+sampled_data = np.random.choice(np.arange(1, profile.shape[0] + 1), size=10000, p=profile.tolist())
+sampled_data = sampled_data + np.random.normal(0.75, 1.0, size=len(sampled_data))
 
 # select a Gaussian mixture model using the sampled data
-# models = [GaussianMixture(n_components=i, covariance_type='full',
-#                           tol=1e-2, n_init=1) for i in range(1,6)]
-# models = [model.fit(sampled_data.reshape(-1, 1)) for model in models]
-# bics = [model.bic(sampled_data.reshape(-1, 1)) for model in models]
-# models[np.argmin(bics)].means_
-# models[np.argmin(bics)].covariances_
+models = [GaussianMixture(n_components=i, covariance_type='full',
+                          tol=1e-2, n_init=1) for i in range(1,6)]
+models = [model.fit(sampled_data.reshape(-1, 1)) for model in models]
+bics = [model.bic(sampled_data.reshape(-1, 1)) for model in models]
+models[np.argmin(bics)].means_
+models[np.argmin(bics)].covariances_
 
 plot = ggplot(pd.DataFrame({'data':sampled_data})) + geom_histogram(aes('data'))
 for mean in models[np.argmin(bics)].means_:
