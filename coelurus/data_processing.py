@@ -321,6 +321,7 @@ class DataProcessor(object):
         if self.config.getint('filter_options', 'remove_n_last_fracs') > 0:
             data = self.remove_n_last_fractions(data)
 
+        #data = self.remove_singletons(data)
         data = self.impute_missing_values(data)
         data = self.filter_missing_profiles(data)
 
@@ -329,8 +330,6 @@ class DataProcessor(object):
 
         if self.config.getfloat('filter_options', 'min_signal_to_noise') > 0:
             data = self.filter_signal_to_noise(data)
-
-        data = self.remove_singletons(data)
 
         return data
 
