@@ -1,3 +1,5 @@
+-- this is unfinished work --
+
 ## Algorithm for co-elution data profiling using machine learning.
 #### Based on elements of the MATLAB algorithm from Stacey et al. 2017, BMC Bioinformatics, rewritten in Python with changes
 #### Author: Piotr Grabowski, 2018, Rappsilber group
